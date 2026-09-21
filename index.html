@@ -33,6 +33,8 @@ try{
     --success-soft:#E4F3EA;
     --danger:#B23A3A;
     --danger-soft:#FAEAEA;
+    --warning:#8A5A12;
+    --warning-soft:#F5EBD8;
     --paid:#66282E;
     --paid-soft:#F2E4E5;
     --radius:6px;
@@ -58,6 +60,8 @@ try{
     --success-soft:#16261E;
     --danger:#D14343;
     --danger-soft:#2C1919;
+    --warning:#D6A339;
+    --warning-soft:#2E2716;
     --paid:#B5495A;
     --paid-soft:#33202A;
     --btn-neutral-text:#ECEDEF;
@@ -172,6 +176,10 @@ try{
     background:var(--surface); border:1px solid var(--border); color:var(--text);
     padding:7px 12px; border-radius:var(--radius); font-size:13px; width:190px;
   }
+  .search-wrap select{
+    background:var(--surface); border:1px solid var(--border); color:var(--text);
+    padding:7px 10px; border-radius:var(--radius); font-size:12.5px; font-family:'Inter',sans-serif;
+  }
   .check-lbl{display:flex; align-items:center; gap:6px; color:var(--text-dim); font-size:12.5px; white-space:nowrap;}
 
   /* Table */
@@ -220,6 +228,11 @@ try{
   .pill-incluido{background:var(--info-soft); color:var(--info);}
   .pill-faturado{background:var(--paid-soft); color:var(--paid);}
   .pill-pago{background:var(--success-soft); color:var(--success);}
+  .pill-prazo-atrasada{background:var(--danger-soft); color:var(--danger);}
+  .pill-prazo-hoje{background:var(--warning-soft); color:var(--warning);}
+  .pill-prazo-proxima{background:var(--info-soft); color:var(--info);}
+  .pill-prazo-futura{background:transparent; color:var(--text-dim); border:1px solid var(--border);}
+  .pill-prazo-fechada{background:var(--surface-alt); color:var(--text-faint);}
 
   .empty-state{padding:60px 20px; text-align:center; color:var(--text-dim);}
   .empty-state h3{color:var(--text); margin-bottom:6px;}
@@ -394,6 +407,8 @@ try{
     </div>
     <div class="stats">
       <div class="stat"><div class="num mono" id="statAtivas">0</div><div class="lbl">missões ativas</div></div>
+      <div class="stat"><div class="num mono" id="statAtrasadas" style="color:var(--danger);">0</div><div class="lbl">atrasadas</div></div>
+      <div class="stat"><div class="num mono" id="statHojeAmanha" style="color:var(--warning);">0</div><div class="lbl">hoje / amanhã</div></div>
       <div class="stat"><div class="num mono" id="statFaturar">R$ 0</div><div class="lbl">a faturar</div></div>
       <div class="stat"><div class="num mono" id="statMes">R$ 0</div><div class="lbl">total no mês</div></div>
     </div>
@@ -426,6 +441,13 @@ try{
   <div class="filters">
     <div class="tabs" id="statusTabs"></div>
     <div class="search-wrap">
+      <select id="filtroPrazo">
+        <option value="Todos">Todos os prazos</option>
+        <option value="Atrasada">Atrasadas</option>
+        <option value="Hoje">Hoje</option>
+        <option value="Proxima">Próximos dias</option>
+        <option value="Futura">Futuro próximo</option>
+      </select>
       <label class="check-lbl"><input type="checkbox" id="chkNaoFaturadas"> só não faturadas</label>
       <input type="text" id="searchInput" placeholder="Buscar solicitante, trajeto, motorista...">
     </div>
@@ -437,6 +459,7 @@ try{
         <tr>
           <th style="width:70px;">ID</th>
           <th style="width:150px;">Início</th>
+          <th style="width:120px;">Prazo</th>
           <th>Solicitante</th>
           <th>Trajeto / escopo</th>
           <th>Motorista · Veículo</th>
@@ -544,7 +567,11 @@ try{
 
     <div class="section-title">Solicitação</div>
     <div class="form-grid">
+      <div class="field"><label>Nº da solicitação</label><input id="f_numeroSolicitacao" type="text" placeholder="47334"></div>
       <div class="field"><label>Solicitante</label><input id="f_solicitante" type="text" placeholder="Sandro Cunha"></div>
+      <div class="field"><label>Cliente atendido</label><input id="f_cliente" type="text" placeholder="Raphael Costa"></div>
+      <div class="field"><label>Cargo do solicitante</label><input id="f_solicitanteCargo" type="text" placeholder="Executive Secretary"></div>
+      <div class="field"><label>Telefone do solicitante</label><input id="f_solicitanteTelefone" type="text" placeholder="+55 91 9.8886.7974"></div>
       <div class="field"><label>Canal</label>
         <select id="f_canal"><option>WhatsApp</option><option>E-mail</option><option>Telefone</option></select>
       </div>
@@ -563,9 +590,13 @@ try{
     <div class="section-title">Escopo do serviço</div>
     <div class="form-grid">
       <div class="field"><label>Tipo de atendimento</label>
-        <select id="f_tipoAtendimento"><option>Transfer único</option><option>Disponibilidade plena</option></select>
+        <select id="f_tipoAtendimento"><option>Transfer único</option><option>Ida e volta</option><option>Disponibilidade plena</option></select>
       </div>
       <div class="field"><label>Passageiro(s)</label><input id="f_passageiros" type="text" placeholder="Helga Andresen, Morten Rivelsrud"></div>
+      <div class="field"><label>Telefone do passageiro</label><input id="f_telefonePassageiro" type="text" placeholder="21.9.6918.5960"></div>
+      <div class="field"><label>CPF do passageiro</label><input id="f_cpfPassageiro" type="text" placeholder="016.690.678-66"></div>
+      <div class="field"><label>Cidade</label><input id="f_cidade" type="text" placeholder="Rio de Janeiro"></div>
+      <div class="field full"><label>Endereço do passageiro</label><input id="f_enderecoPassageiro" type="text" placeholder="Avn Rui Barbosa 364/901, Flamengo, Rio de Janeiro, CEP 22250-020"></div>
       <div class="field"><label>Data início</label><input id="f_dataInicio" type="date"></div>
       <div class="field"><label>Hora início</label><input id="f_horaInicio" type="time"></div>
       <div class="field"><label>Data fim</label><input id="f_dataFim" type="date"></div>
@@ -573,6 +604,17 @@ try{
       <div class="field"><label>Origem</label><input id="f_origem" type="text" placeholder="Aeroporto Santos Dumont"></div>
       <div class="field"><label>Destino</label><input id="f_destino" type="text" placeholder="Hotel / escritório Hydro — ou 'à disposição'"></div>
     </div>
+
+    <div class="section-title">Retorno (se for ida e volta)</div>
+    <div class="form-grid">
+      <div class="field"><label>Data volta</label><input id="f_dataVolta" type="date"></div>
+      <div class="field"><label>Hora volta</label><input id="f_horaVolta" type="time"></div>
+      <div class="field"><label>Origem volta</label><input id="f_origemVolta" type="text" placeholder="deixe em branco se igual ao destino da ida"></div>
+      <div class="field"><label>Destino volta</label><input id="f_destinoVolta" type="text" placeholder="deixe em branco se igual à origem da ida"></div>
+    </div>
+
+    <div class="section-title">Dados de voo (se houver)</div>
+    <div class="field"><textarea id="f_vooInfo" placeholder="Cia, nº do voo, localizador, bilhete, horários de partida/chegada..."></textarea></div>
 
     <div class="section-title">Veículo e motorista</div>
     <div class="form-grid">
@@ -586,6 +628,7 @@ try{
       <div class="field"><label>Modelo do veículo</label><input id="f_veiculoModelo" type="text" placeholder="Toyota Corolla"></div>
       <div class="field"><label>Placa</label><input id="f_placa" type="text" placeholder="ABC1D23">
     </div>
+      <div class="field"><label>&nbsp;</label><label class="check-field"><input type="checkbox" id="f_blindado"> Veículo blindado</label></div>
     </div>
 
     <div class="section-title">Financeiro</div>
@@ -596,6 +639,9 @@ try{
       <div class="field"><label>Valor / hora extra (R$)</label><input id="f_valorHoraExtra" type="number" step="0.01" value="0"></div>
       <div class="field"><label>Km excedente</label><input id="f_kmExcedente" type="number" step="1" value="0"></div>
       <div class="field"><label>Valor / km (R$)</label><input id="f_valorKm" type="number" step="0.01" value="0"></div>
+      <div class="field"><label>Valor da diária (R$)</label><input id="f_valorDiaria" type="number" step="0.01" value="0" placeholder="para disponibilidade de vários dias">
+        <div class="sub" id="diariasInfo" style="margin-top:4px;"></div>
+      </div>
     </div>
     <div class="total-line">
       <span class="label-font" style="font-size:12px; color:var(--text-dim);">VALOR TOTAL</span>
@@ -650,28 +696,43 @@ const STATUS_CLASS = {
 
 function toDbRow(m){
   return {
+    numero_solicitacao: m.numeroSolicitacao || null,
     solicitante: m.solicitante || null,
+    cliente: m.cliente || null,
+    solicitante_cargo: m.solicitanteCargo || null,
+    solicitante_telefone: m.solicitanteTelefone || null,
     canal: m.canal || null,
     status: m.status || 'Solicitado',
     status_faturamento: m.statusFaturamento || 'Pendente',
     tipo_atendimento: m.tipoAtendimento || null,
     passageiros: m.passageiros || null,
+    telefone_passageiro: m.telefonePassageiro || null,
+    cpf_passageiro: m.cpfPassageiro || null,
+    endereco_passageiro: m.enderecoPassageiro || null,
+    cidade: m.cidade || null,
     data_inicio: m.dataInicio || null,
     hora_inicio: m.horaInicio || null,
     data_fim: m.dataFim || null,
     hora_fim: m.horaFim || null,
     origem: m.origem || null,
     destino: m.destino || null,
+    data_volta: m.dataVolta || null,
+    hora_volta: m.horaVolta || null,
+    origem_volta: m.origemVolta || null,
+    destino_volta: m.destinoVolta || null,
+    voo_info: m.vooInfo || null,
     motorista: m.motorista || null,
     tipo_veiculo: m.tipoVeiculo || null,
     veiculo_modelo: m.veiculoModelo || null,
     placa: m.placa || null,
+    blindado: !!m.blindado,
     valor_base: m.valorBase || 0,
     outros_custos: m.outrosCustos || 0,
     qtd_hora_extra: m.qtdHoraExtra || 0,
     valor_hora_extra: m.valorHoraExtra || 0,
     km_excedente: m.kmExcedente || 0,
     valor_km: m.valorKm || 0,
+    valor_diaria: m.valorDiaria || 0,
     observacoes: m.observacoes || null,
     texto_original: m.textoOriginal || null,
     voucher_anexado: !!m.voucherAnexado,
@@ -683,29 +744,44 @@ function toDbRow(m){
 function fromDbRow(r){
   return {
     id: r.id,
+    numeroSolicitacao: r.numero_solicitacao || '',
     solicitante: r.solicitante || '',
+    cliente: r.cliente || '',
+    solicitanteCargo: r.solicitante_cargo || '',
+    solicitanteTelefone: r.solicitante_telefone || '',
     canal: r.canal || '',
     status: r.status || 'Solicitado',
     statusFaturamento: r.status_faturamento || 'Pendente',
     faturaId: r.fatura_id || '',
     tipoAtendimento: r.tipo_atendimento || '',
     passageiros: r.passageiros || '',
+    telefonePassageiro: r.telefone_passageiro || '',
+    cpfPassageiro: r.cpf_passageiro || '',
+    enderecoPassageiro: r.endereco_passageiro || '',
+    cidade: r.cidade || '',
     dataInicio: r.data_inicio || '',
     horaInicio: r.hora_inicio ? String(r.hora_inicio).slice(0,5) : '',
     dataFim: r.data_fim || '',
     horaFim: r.hora_fim ? String(r.hora_fim).slice(0,5) : '',
     origem: r.origem || '',
     destino: r.destino || '',
+    dataVolta: r.data_volta || '',
+    horaVolta: r.hora_volta ? String(r.hora_volta).slice(0,5) : '',
+    origemVolta: r.origem_volta || '',
+    destinoVolta: r.destino_volta || '',
+    vooInfo: r.voo_info || '',
     motorista: r.motorista || '',
     tipoVeiculo: r.tipo_veiculo || '',
     veiculoModelo: r.veiculo_modelo || '',
     placa: r.placa || '',
+    blindado: !!r.blindado,
     valorBase: r.valor_base || 0,
     outrosCustos: r.outros_custos || 0,
     qtdHoraExtra: r.qtd_hora_extra || 0,
     valorHoraExtra: r.valor_hora_extra || 0,
     kmExcedente: r.km_excedente || 0,
     valorKm: r.valor_km || 0,
+    valorDiaria: r.valor_diaria || 0,
     observacoes: r.observacoes || '',
     textoOriginal: r.texto_original || '',
     voucherAnexado: !!r.voucher_anexado,
@@ -796,23 +872,55 @@ function buildTabs(){
   });
 }
 
+function countDiarias(m){
+  if(!m.dataInicio) return 0;
+  const start = new Date(m.dataInicio + 'T00:00:00');
+  const end = new Date((m.dataFim || m.dataInicio) + 'T00:00:00');
+  const days = Math.round((end - start) / 86400000) + 1;
+  return days > 0 ? days : 1;
+}
+
 function computeTotal(m){
   const base = parseFloat(m.valorBase)||0;
   const outros = parseFloat(m.outrosCustos)||0;
   const he = (parseFloat(m.qtdHoraExtra)||0) * (parseFloat(m.valorHoraExtra)||0);
   const km = (parseFloat(m.kmExcedente)||0) * (parseFloat(m.valorKm)||0);
-  return base + outros + he + km;
+  const diarias = countDiarias(m) * (parseFloat(m.valorDiaria)||0);
+  return base + outros + he + km + diarias;
+}
+
+function prazoInfo(m){
+  if(m.status === 'Concluído' || m.status === 'Cancelado'){
+    return {key:'Fechada', label:m.status, cls:'pill-prazo-fechada'};
+  }
+  if(!m.dataInicio){
+    return {key:'SemData', label:'Sem data', cls:'pill-prazo-futura'};
+  }
+  const today = new Date(); today.setHours(0,0,0,0);
+  const start = new Date(m.dataInicio + 'T00:00:00');
+  const end = new Date((m.dataVolta || m.dataFim || m.dataInicio) + 'T00:00:00');
+  const diffStart = Math.round((start - today) / 86400000);
+  const diffEnd = Math.round((end - today) / 86400000);
+
+  if(diffEnd < 0) return {key:'Atrasada', label:'Atrasada', cls:'pill-prazo-atrasada'};
+  if(diffStart < 0) return {key:'Hoje', label:'Em andamento', cls:'pill-prazo-hoje'};
+  if(diffStart === 0) return {key:'Hoje', label:'Hoje', cls:'pill-prazo-hoje'};
+  if(diffStart === 1) return {key:'Hoje', label:'Amanhã', cls:'pill-prazo-hoje'};
+  if(diffStart <= 7) return {key:'Proxima', label:`Em ${diffStart} dias`, cls:'pill-prazo-proxima'};
+  return {key:'Futura', label:fmtDateBR(m.dataInicio), cls:'pill-prazo-futura'};
 }
 
 function render(){
   const search = document.getElementById('searchInput').value.trim().toLowerCase();
   const onlyUnbilled = document.getElementById('chkNaoFaturadas').checked;
+  const filtroPrazo = document.getElementById('filtroPrazo').value;
 
   let list = missions.filter(m=>{
     if(currentTab !== 'Todas' && m.status !== currentTab) return false;
     if(onlyUnbilled && (m.statusFaturamento === 'Faturado' || m.statusFaturamento === 'Pago')) return false;
+    if(filtroPrazo !== 'Todos' && prazoInfo(m).key !== filtroPrazo) return false;
     if(search){
-      const hay = [m.solicitante,m.origem,m.destino,m.motorista,m.veiculoModelo,m.placa,m.passageiros].join(' ').toLowerCase();
+      const hay = [m.solicitante,m.origem,m.destino,m.motorista,m.veiculoModelo,m.placa,m.passageiros,m.cidade,m.numeroSolicitacao,m.cpfPassageiro].join(' ').toLowerCase();
       if(!hay.includes(search)) return false;
     }
     return true;
@@ -834,12 +942,17 @@ function render(){
       const trajeto = m.tipoAtendimento === 'Disponibilidade plena'
         ? 'À disposição' + (m.destino ? ' — ' + m.destino : '')
         : (m.origem||'—') + ' → ' + (m.destino||'—');
+      const voltaSub = m.tipoAtendimento === 'Ida e volta'
+        ? `<span class="sub" style="display:block;">Volta: ${(m.origemVolta||m.destino||'—')} → ${(m.destinoVolta||m.origem||'—')}${m.dataVolta ? ' · '+fmtDateBR(m.dataVolta) : ''}${m.horaVolta ? ' '+m.horaVolta : ''}</span>`
+        : '';
+      const prazo = prazoInfo(m);
       return `
       <tr data-id="${m.id}">
         <td class="id-cell mono">${m.id}</td>
         <td class="mono">${m.dataInicio||'—'}${m.horaInicio ? ' '+m.horaInicio : ''}</td>
-        <td>${m.solicitante||'—'}</td>
-        <td class="trajeto-cell"><strong>${trajeto}</strong><span class="sub">${m.tipoAtendimento||''}${m.passageiros ? ' · '+m.passageiros : ''}</span></td>
+        <td><span class="pill ${prazo.cls}">${prazo.label}</span></td>
+        <td class="trajeto-cell"><strong>${m.solicitante||'—'}</strong>${m.cliente ? `<span class="sub">Atende: ${m.cliente}</span>` : ''}</td>
+        <td class="trajeto-cell"><strong>${trajeto}</strong><span class="sub">${m.tipoAtendimento||''}${m.passageiros ? ' · '+m.passageiros : ''}</span>${voltaSub}</td>
         <td class="trajeto-cell"><strong>${m.motorista||'—'}</strong><span class="sub">${m.veiculoModelo||''}${m.placa ? ' · '+m.placa : ''}</span></td>
         <td><span class="pill ${STATUS_CLASS[m.status]||'pill-solicitado'}">${m.status}</span></td>
         <td><span class="pill ${SF_CLASS[m.statusFaturamento]||'pill-pendente'}">${m.statusFaturamento||'Pendente'}</span>${m.faturaId ? `<div class="sub" style="margin-top:3px;">${m.faturaId}</div>` : `<div class="sub" style="margin-top:3px;">checklist ${checklistDone}/3</div>`}</td>
@@ -855,15 +968,20 @@ function render(){
   const aFaturar = missions.filter(m=>(m.statusFaturamento==='Pendente'||m.statusFaturamento==='Incluído em fatura') && m.status!=='Cancelado').reduce((s,m)=>s+computeTotal(m),0);
   const curMonth = new Date().toISOString().slice(0,7);
   const totalMes = missions.filter(m=>(m.dataInicio||'').startsWith(curMonth) && m.status!=='Cancelado').reduce((s,m)=>s+computeTotal(m),0);
+  const atrasadas = missions.filter(m=>prazoInfo(m).key==='Atrasada').length;
+  const hojeAmanha = missions.filter(m=>prazoInfo(m).key==='Hoje').length;
   document.getElementById('statAtivas').textContent = ativas;
+  document.getElementById('statAtrasadas').textContent = atrasadas;
+  document.getElementById('statHojeAmanha').textContent = hojeAmanha;
   document.getElementById('statFaturar').textContent = fmtMoney(aFaturar);
   document.getElementById('statMes').textContent = fmtMoney(totalMes);
 }
 
-const FIELD_IDS = ['solicitante','canal','status','statusFaturamento','tipoAtendimento','passageiros','dataInicio','horaInicio',
-  'dataFim','horaFim','origem','destino','motorista','tipoVeiculo','veiculoModelo','placa','valorBase','outrosCustos',
-  'qtdHoraExtra','valorHoraExtra','kmExcedente','valorKm','observacoes'];
-const CHECKBOX_FIELD_IDS = ['voucherAnexado','recibosAnexado','copiaOcultaEnviada'];
+const FIELD_IDS = ['numeroSolicitacao','solicitante','cliente','solicitanteCargo','solicitanteTelefone','canal','status','statusFaturamento',
+  'tipoAtendimento','passageiros','telefonePassageiro','cpfPassageiro','enderecoPassageiro','cidade','dataInicio','horaInicio',
+  'dataFim','horaFim','origem','destino','dataVolta','horaVolta','origemVolta','destinoVolta','vooInfo','motorista','tipoVeiculo','veiculoModelo','placa','valorBase','outrosCustos',
+  'qtdHoraExtra','valorHoraExtra','kmExcedente','valorKm','valorDiaria','observacoes'];
+const CHECKBOX_FIELD_IDS = ['blindado','voucherAnexado','recibosAnexado','copiaOcultaEnviada'];
 const ALL_FIELD_IDS = FIELD_IDS.concat(CHECKBOX_FIELD_IDS);
 
 function clearForm(){
@@ -903,8 +1021,12 @@ function readForm(){
 function updateTotalPreview(){
   const m = readForm();
   document.getElementById('totalPreview').textContent = fmtMoney(computeTotal(m));
+  const diarias = countDiarias(m);
+  document.getElementById('diariasInfo').textContent = (parseFloat(m.valorDiaria)||0) > 0
+    ? `= ${diarias} diária(s) × ${fmtMoney(m.valorDiaria)}`
+    : '';
 }
-document.querySelectorAll('#f_valorBase,#f_outrosCustos,#f_qtdHoraExtra,#f_valorHoraExtra,#f_kmExcedente,#f_valorKm')
+document.querySelectorAll('#f_valorBase,#f_outrosCustos,#f_qtdHoraExtra,#f_valorHoraExtra,#f_kmExcedente,#f_valorKm,#f_valorDiaria,#f_dataInicio,#f_dataFim')
   .forEach(el=> el.addEventListener('input', updateTotalPreview));
 
 let draftQueue = [];
@@ -1032,6 +1154,7 @@ document.getElementById('btnDelete').addEventListener('click', async ()=>{
 
 document.getElementById('searchInput').addEventListener('input', render);
 document.getElementById('chkNaoFaturadas').addEventListener('change', render);
+document.getElementById('filtroPrazo').addEventListener('change', render);
 document.getElementById('btnLimparPaste').addEventListener('click', ()=>{ document.getElementById('pasteArea').value=''; });
 
 document.getElementById('btnOrganizar').addEventListener('click', async ()=>{
@@ -1181,7 +1304,9 @@ function generateRowsForMission(m){
   const dataFmt = fmtDateBR(m.dataInicio);
   const trajeto = m.tipoAtendimento === 'Disponibilidade plena'
     ? `Disposição${m.veiculoModelo ? ' ' + m.veiculoModelo : ''}${m.horaInicio && m.horaFim ? ' ' + m.horaInicio + '-' + m.horaFim : ''}`
-    : `${m.origem || '—'} -> ${m.destino || '—'}`;
+    : m.tipoAtendimento === 'Ida e volta'
+      ? `${m.origem || '—'} -> ${m.destino || '—'} (ida)<br>${(m.origemVolta||m.destino||'—')} -> ${(m.destinoVolta||m.origem||'—')} (volta${m.dataVolta ? ' ' + fmtDateBR(m.dataVolta) : ''})`
+      : `${m.origem || '—'} -> ${m.destino || '—'}`;
   const servicoDesc = `Serviço de Transporte<br>${trajeto}${m.tipoVeiculo ? '<br>' + m.tipoVeiculo : ''}`;
   addVoucherRow({ missionId: m.id, data: dataFmt, servico: servicoDesc, preco: fmtMoney(m.valorBase || 0) });
 
@@ -1195,6 +1320,11 @@ function generateRowsForMission(m){
   if(m.kmExcedente){
     const v = (m.kmExcedente||0) * (m.valorKm||0);
     addVoucherRow({ missionId: m.id, data: dataFmt, servico: `Km excedente (${m.kmExcedente}km) — ${m.id}`, preco: fmtMoney(v) });
+  }
+  if(m.valorDiaria){
+    const dias = countDiarias(m);
+    const v = dias * (m.valorDiaria||0);
+    addVoucherRow({ missionId: m.id, data: dataFmt, servico: `Diárias (${dias}) — ${m.id}`, preco: fmtMoney(v) });
   }
 }
 

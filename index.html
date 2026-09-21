@@ -619,7 +619,8 @@ try{
     <div class="section-title">Veículo e motorista</div>
     <div class="form-grid">
       <div class="field"><label>Motorista</label>
-        <select id="f_motorista"><option value="">Selecionar motorista</option></select>
+        <input id="f_motorista" type="text" list="motoristasList" placeholder="Nome do motorista" autocomplete="off">
+        <datalist id="motoristasList"></datalist>
         <div class="sub" id="motoristaInfo" style="margin-top:5px;"></div>
       </div>
       <div class="field"><label>Tipo de veículo</label>
@@ -797,26 +798,21 @@ const MOTORISTAS = [
 ];
 
 function buildMotoristaOptions(){
-  const sel = document.getElementById('f_motorista');
+  const list = document.getElementById('motoristasList');
   MOTORISTAS.forEach(mo=>{
     const opt = document.createElement('option');
     opt.value = mo.nome;
-    opt.textContent = mo.nome;
-    sel.appendChild(opt);
+    list.appendChild(opt);
   });
-  const outro = document.createElement('option');
-  outro.value = 'Outro';
-  outro.textContent = 'Outro (avulso)';
-  sel.appendChild(outro);
 }
 
 function updateMotoristaInfo(){
-  const sel = document.getElementById('f_motorista');
+  const input = document.getElementById('f_motorista');
   const info = document.getElementById('motoristaInfo');
-  const mo = MOTORISTAS.find(m=>m.nome === sel.value);
+  const mo = MOTORISTAS.find(m=>m.nome === input.value);
   info.textContent = mo ? `${mo.telefone} · ${mo.email}` : '';
 }
-document.getElementById('f_motorista').addEventListener('change', updateMotoristaInfo);
+document.getElementById('f_motorista').addEventListener('input', updateMotoristaInfo);
 
 function toast(msg, isErr){
   const t = document.getElementById('toast');

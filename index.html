@@ -456,6 +456,7 @@ try{
     <button class="view-tab active" id="tabMissoes" type="button">Missões</button>
     <button class="view-tab" id="tabFaturamento" type="button">Faturamento</button>
     <button class="view-tab" id="tabRelatorios" type="button">Relatórios</button>
+    <button class="view-tab" id="tabFornecedores" type="button">Fornecedores</button>
   </div>
 
   <div id="viewMissoes">
@@ -522,6 +523,7 @@ try{
       <div class="field" style="max-width:280px; margin:0;">
         <label>Competência</label>
         <input type="month" id="voucherCompetencia">
+        <div class="sub" id="voucherEditingBanner" style="margin-top:6px; display:none;"></div>
       </div>
       <div class="voucher-toolbar-actions">
         <button class="btn btn-ghost btn-sm" id="btnVoucherNovaLinha" type="button">+ Linha</button>
@@ -583,7 +585,7 @@ try{
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>ID</th><th>Competência</th><th>Missões</th><th>Valor</th><th style="width:150px;">Status</th><th style="width:70px;"></th></tr>
+            <tr><th>ID</th><th>Competência</th><th>Missões</th><th>Valor</th><th style="width:150px;">Status</th><th style="width:90px;"></th></tr>
           </thead>
           <tbody id="faturasTbody"></tbody>
         </table>
@@ -680,6 +682,80 @@ try{
           <span class="label-font" style="font-size:12px; color:var(--text-dim);">TOTAL DO PERÍODO</span>
           <span class="num mono" id="relatorioClienteTotal">R$ 0,00</span>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="viewFornecedores" style="display:none;">
+    <div class="paste-hint" style="margin-bottom:16px;">Repasses aos fornecedores (ex: Connexion Brazil) e motoristas — o valor já descontada nossa taxa sobre o serviço faturado ao cliente.</div>
+
+    <div class="stats" style="margin-bottom:18px;">
+      <div class="stat"><div class="num mono" id="statRepassePendente">R$ 0</div><div class="lbl">a repassar</div></div>
+      <div class="stat"><div class="num mono" id="statRepassePago" style="color:var(--success);">R$ 0</div><div class="lbl">repassado</div></div>
+      <div class="stat"><div class="num mono" id="statMargem">R$ 0</div><div class="lbl">nossa margem (vinculados)</div></div>
+    </div>
+
+    <div class="filters">
+      <div class="tabs" id="fornecedorTabs"></div>
+      <div class="search-wrap">
+        <button class="btn btn-accent btn-sm" id="btnNovoRepasse" type="button">+ Novo repasse</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:70px;">ID</th>
+            <th>Missão / Cliente</th>
+            <th>Motorista</th>
+            <th>Fornecedor</th>
+            <th style="width:110px;">Repasse</th>
+            <th style="width:110px;">Nossa margem</th>
+            <th style="width:110px;">Status</th>
+            <th style="width:110px;">Pagamento</th>
+          </tr>
+        </thead>
+        <tbody id="fornecedoresTbody"></tbody>
+      </table>
+      <div class="empty-state" id="fornecedoresEmptyState" style="display:none;">
+        <h3>Nenhum repasse ainda</h3>
+        <div>Clique em "+ Novo repasse" para registrar o pagamento de um motorista/fornecedor.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlayFornecedor">
+  <div class="modal">
+    <h2 id="modalFornecedorTitle">Novo repasse</h2>
+    <div class="modal-sub">Valor a pagar ao fornecedor/motorista pelo serviço, já com nossa taxa descontada.</div>
+
+    <div class="form-grid">
+      <div class="field full"><label>Missão vinculada <span style="font-weight:400; color:var(--text-faint);">(opcional)</span></label>
+        <select id="rf_missaoId"><option value="">Nenhuma (avulso)</option></select>
+        <div class="sub" id="rf_missaoInfo" style="margin-top:5px;"></div>
+      </div>
+      <div class="field"><label>Fornecedor</label><input id="rf_fornecedor" type="text" value="Connexion Brazil"></div>
+      <div class="field"><label>Motorista</label><input id="rf_motorista" type="text" list="motoristasList" placeholder="Nome do motorista" autocomplete="off"></div>
+      <div class="field"><label>Valor a repassar (R$)</label><input id="rf_valorRepasse" type="number" step="0.01" value="0"></div>
+      <div class="field"><label>Status</label>
+        <select id="rf_status"><option>Pendente</option><option>Pago</option></select>
+      </div>
+      <div class="field"><label>Data de pagamento</label><input id="rf_dataPagamento" type="date"></div>
+      <div class="field full"><label>Observações</label><textarea id="rf_observacoes" placeholder="Pix, comprovante, condições combinadas..."></textarea></div>
+    </div>
+
+    <div class="total-line">
+      <span class="label-font" style="font-size:12px; color:var(--text-dim);">NOSSA MARGEM</span>
+      <span class="num mono" id="rf_margemPreview">R$ 0,00</span>
+    </div>
+
+    <div class="modal-footer">
+      <div><button class="btn btn-danger btn-sm" id="btnDeleteRepasse" style="display:none;">Excluir repasse</button></div>
+      <div class="right">
+        <button class="btn btn-ghost" id="btnCancelarRepasse">Cancelar</button>
+        <button class="btn btn-accent" id="btnSalvarRepasse">Salvar repasse</button>
       </div>
     </div>
   </div>
@@ -1492,6 +1568,36 @@ function clearVoucher(){
   recalcVoucherTotal();
 }
 
+let editingFaturaId = null;
+
+function resetVoucherEditingState(){
+  editingFaturaId = null;
+  document.getElementById('voucherEditingBanner').style.display = 'none';
+  document.getElementById('btnVoucherSalvar').textContent = 'Salvar fatura';
+}
+
+function loadFaturaIntoVoucher(fatura){
+  document.getElementById('v_data').textContent = fatura.data_texto || '';
+  document.getElementById('v_cliente').textContent = fatura.cliente || 'NORSK HYDRO';
+  document.getElementById('v_numero').textContent = fatura.numero || '';
+  document.getElementById('v_att').textContent = fatura.att || '';
+  document.getElementById('v_tel').textContent = fatura.tel || '';
+  document.getElementById('v_email').textContent = fatura.email || '';
+  document.getElementById('voucherCompetencia').value = fatura.competencia || '';
+  document.getElementById('voucherNotesList').innerHTML = fatura.notas || '';
+
+  clearVoucher();
+  (fatura.linhas || []).forEach(l => addVoucherRow(l));
+
+  editingFaturaId = fatura.id;
+  const banner = document.getElementById('voucherEditingBanner');
+  banner.textContent = `Visualizando fatura ${fatura.id} — edite e salve para atualizar, ou clique em "Limpar voucher" para começar um novo.`;
+  banner.style.display = 'block';
+  document.getElementById('btnVoucherSalvar').textContent = 'Atualizar fatura';
+
+  toast(`Fatura ${fatura.id} carregada.`);
+}
+
 function generateRowsForMission(m){
   const dataFmt = fmtDateBR(m.dataInicio);
   const trajeto = m.tipoAtendimento === 'Disponibilidade plena'
@@ -1552,7 +1658,10 @@ document.getElementById('btnVoucherAdicionarSelecionadas').addEventListener('cli
 
 document.getElementById('btnVoucherNovaLinha').addEventListener('click', ()=> addVoucherRow());
 document.getElementById('btnVoucherLimpar').addEventListener('click', ()=>{
-  if(confirm('Limpar todas as linhas do voucher?')) clearVoucher();
+  if(confirm('Limpar todas as linhas do voucher?')){
+    clearVoucher();
+    resetVoucherEditingState();
+  }
 });
 document.getElementById('btnVoucherImprimir').addEventListener('click', ()=> window.print());
 
@@ -1577,12 +1686,11 @@ document.getElementById('btnVoucherSalvar').addEventListener('click', async ()=>
   const valorTotal = linhas.reduce((s,l)=> s + parseMoneyStr(l.total), 0);
   const missionIds = [...new Set(linhas.map(l=>l.missionId).filter(Boolean))];
   const competencia = document.getElementById('voucherCompetencia').value || new Date().toISOString().slice(0,7);
-  const id = nextFaturaId();
+  const isUpdate = !!editingFaturaId;
+  const id = isUpdate ? editingFaturaId : nextFaturaId();
 
-  const btn = document.getElementById('btnVoucherSalvar');
-  btn.disabled = true;
-  const { error } = await sb.from('faturas_norsk_hydro').insert({
-    id, competencia,
+  const payload = {
+    competencia,
     numero: document.getElementById('v_numero').textContent.trim(),
     cliente: document.getElementById('v_cliente').textContent.trim(),
     data_texto: document.getElementById('v_data').textContent.trim(),
@@ -1590,8 +1698,14 @@ document.getElementById('btnVoucherSalvar').addEventListener('click', async ()=>
     tel: document.getElementById('v_tel').textContent.trim(),
     email: document.getElementById('v_email').textContent.trim(),
     linhas, notas: document.getElementById('voucherNotesList').innerHTML,
-    valor_total: valorTotal, status: 'Rascunho'
-  });
+    valor_total: valorTotal
+  };
+
+  const btn = document.getElementById('btnVoucherSalvar');
+  btn.disabled = true;
+  const { error } = isUpdate
+    ? await sb.from('faturas_norsk_hydro').update(payload).eq('id', id)
+    : await sb.from('faturas_norsk_hydro').insert({ id, status: 'Rascunho', ...payload });
   btn.disabled = false;
   if(error){ toast('Erro ao salvar fatura: ' + error.message, true); return; }
 
@@ -1601,8 +1715,9 @@ document.getElementById('btnVoucherSalvar').addEventListener('click', async ()=>
     ));
   }
 
-  toast(`Fatura ${id} salva.`);
+  toast(isUpdate ? `Fatura ${id} atualizada.` : `Fatura ${id} salva.`);
   clearVoucher();
+  resetVoucherEditingState();
   await loadMissions();
   await loadFaturas();
   populateVoucherMissionChecklist();
@@ -1638,9 +1753,15 @@ function renderFaturas(){
           <option ${f.status==='Paga'?'selected':''}>Paga</option>
         </select>
       </td>
-      <td></td>
+      <td><button class="btn btn-ghost btn-sm fatura-abrir" data-id="${f.id}" type="button">Abrir</button></td>
     </tr>`;
   }).join('');
+  tbody.querySelectorAll('.fatura-abrir').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const f = faturas.find(x=>x.id===btn.dataset.id);
+      if(f) loadFaturaIntoVoucher(f);
+    });
+  });
   tbody.querySelectorAll('.fatura-status').forEach(sel=>{
     sel.addEventListener('change', async (e)=>{
       const id = e.target.dataset.id;
@@ -1667,20 +1788,26 @@ function renderFaturas(){
 document.getElementById('tabMissoes').addEventListener('click', ()=> switchView('missoes'));
 document.getElementById('tabFaturamento').addEventListener('click', ()=> switchView('faturamento'));
 document.getElementById('tabRelatorios').addEventListener('click', ()=> switchView('relatorios'));
+document.getElementById('tabFornecedores').addEventListener('click', ()=> switchView('fornecedores'));
 
 function switchView(view){
   document.getElementById('viewMissoes').style.display = view === 'missoes' ? '' : 'none';
   document.getElementById('viewFaturamento').style.display = view === 'faturamento' ? '' : 'none';
   document.getElementById('viewRelatorios').style.display = view === 'relatorios' ? '' : 'none';
+  document.getElementById('viewFornecedores').style.display = view === 'fornecedores' ? '' : 'none';
   document.getElementById('tabMissoes').classList.toggle('active', view === 'missoes');
   document.getElementById('tabFaturamento').classList.toggle('active', view === 'faturamento');
   document.getElementById('tabRelatorios').classList.toggle('active', view === 'relatorios');
+  document.getElementById('tabFornecedores').classList.toggle('active', view === 'fornecedores');
   if(view === 'faturamento'){
     populateVoucherMissionChecklist();
     loadFaturas();
   }
   if(view === 'relatorios'){
     renderRelatorios();
+  }
+  if(view === 'fornecedores'){
+    loadFornecedores();
   }
 }
 
@@ -1888,6 +2015,213 @@ document.querySelectorAll('#relatorioTabs .tab').forEach(btn=>{
 });
 document.getElementById('relatorioPeriodo').addEventListener('change', renderRelatorios);
 document.getElementById('btnExportarRelatorioPDF').addEventListener('click', ()=> window.print());
+
+/* ---------- Fornecedores (repasses) ---------- */
+let fornecedores = [];
+let currentFornecedorTab = 'Todos';
+let editingRepasseId = null;
+const FORNECEDOR_STATUS_LIST = ['Pendente','Pago'];
+const FORNECEDOR_STATUS_CLASS = {'Pendente':'pill-pendente','Pago':'pill-pago'};
+
+function toRepasseDbRow(r){
+  return {
+    missao_id: r.missaoId || null,
+    fornecedor: r.fornecedor || null,
+    motorista: r.motorista || null,
+    valor_repasse: r.valorRepasse || 0,
+    status: r.status || 'Pendente',
+    data_pagamento: r.dataPagamento || null,
+    observacoes: r.observacoes || null
+  };
+}
+
+function fromRepasseDbRow(r){
+  return {
+    id: r.id,
+    missaoId: r.missao_id || '',
+    fornecedor: r.fornecedor || '',
+    motorista: r.motorista || '',
+    valorRepasse: r.valor_repasse || 0,
+    status: r.status || 'Pendente',
+    dataPagamento: r.data_pagamento || '',
+    observacoes: r.observacoes || ''
+  };
+}
+
+function nextRepasseId(){
+  const n = fornecedores.length ? Math.max(...fornecedores.map(r=>parseInt((r.id||'REP-0').split('-')[1])||0)) + 1 : 1;
+  return 'REP-' + String(n).padStart(4,'0');
+}
+
+async function loadFornecedores(){
+  const { data, error } = await sb.from('fornecedores_norsk_hydro').select('*').order('criado_em', {ascending:false});
+  if(error){ toast('Erro ao carregar fornecedores: ' + error.message, true); fornecedores = []; }
+  else fornecedores = (data || []).map(fromRepasseDbRow);
+  renderFornecedores();
+}
+
+function buildFornecedorTabs(){
+  const wrap = document.getElementById('fornecedorTabs');
+  const tabs = ['Todos', ...FORNECEDOR_STATUS_LIST];
+  wrap.innerHTML = tabs.map(t => `<button class="tab ${t===currentFornecedorTab?'active':''}" data-tab="${t}">${t}</button>`).join('');
+  wrap.querySelectorAll('.tab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ currentFornecedorTab = btn.dataset.tab; buildFornecedorTabs(); renderFornecedores(); });
+  });
+}
+
+function repasseMargem(r){
+  if(!r.missaoId) return null;
+  const m = missions.find(x=>x.id===r.missaoId);
+  if(!m) return null;
+  return computeTotal(m) - (parseFloat(r.valorRepasse)||0);
+}
+
+function renderFornecedores(){
+  const list = fornecedores.filter(r => currentFornecedorTab==='Todos' || r.status===currentFornecedorTab);
+  const tbody = document.getElementById('fornecedoresTbody');
+  const empty = document.getElementById('fornecedoresEmptyState');
+  if(!list.length){
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+  } else {
+    empty.style.display = 'none';
+    tbody.innerHTML = list.map(r=>{
+      const m = r.missaoId ? missions.find(x=>x.id===r.missaoId) : null;
+      const missaoLabel = m
+        ? `<strong>${m.id}</strong><span class="sub">${m.cliente || m.solicitante || '—'}</span>`
+        : '<span class="sub">avulso, sem missão vinculada</span>';
+      const margem = repasseMargem(r);
+      return `
+      <tr data-id="${r.id}">
+        <td class="id-cell mono">${r.id}</td>
+        <td class="trajeto-cell">${missaoLabel}</td>
+        <td>${r.motorista||'—'}</td>
+        <td>${r.fornecedor||'—'}</td>
+        <td class="valor-cell mono">${fmtMoney(r.valorRepasse)}</td>
+        <td class="valor-cell mono">${margem===null ? '<span class="sub">—</span>' : fmtMoney(margem)}</td>
+        <td><span class="pill ${FORNECEDOR_STATUS_CLASS[r.status]||'pill-pendente'}">${r.status}</span></td>
+        <td class="mono">${r.dataPagamento ? fmtDateBR(r.dataPagamento) : '—'}</td>
+      </tr>`;
+    }).join('');
+    tbody.querySelectorAll('tr').forEach(tr=>{
+      tr.addEventListener('click', ()=> openRepasseModal(tr.dataset.id));
+    });
+  }
+
+  const pendente = fornecedores.filter(r=>r.status==='Pendente').reduce((s,r)=>s+(parseFloat(r.valorRepasse)||0),0);
+  const pago = fornecedores.filter(r=>r.status==='Pago').reduce((s,r)=>s+(parseFloat(r.valorRepasse)||0),0);
+  const margemTotal = fornecedores.reduce((s,r)=>{ const mg = repasseMargem(r); return s + (mg||0); },0);
+  document.getElementById('statRepassePendente').textContent = fmtMoney(pendente);
+  document.getElementById('statRepassePago').textContent = fmtMoney(pago);
+  document.getElementById('statMargem').textContent = fmtMoney(margemTotal);
+}
+
+function populateMissaoSelect(selectedId){
+  const sel = document.getElementById('rf_missaoId');
+  const sorted = [...missions].sort((a,b)=> (b.dataInicio||'').localeCompare(a.dataInicio||''));
+  sel.innerHTML = '<option value="">Nenhuma (avulso)</option>' + sorted.map(m=>
+    `<option value="${m.id}">${m.id} — ${m.cliente || m.solicitante || 'sem cliente'} — ${m.dataInicio||'s/ data'}</option>`
+  ).join('');
+  sel.value = selectedId || '';
+}
+
+function updateRepasseMissaoInfo(){
+  const sel = document.getElementById('rf_missaoId');
+  const info = document.getElementById('rf_missaoInfo');
+  const m = missions.find(x=>x.id===sel.value);
+  info.textContent = m ? `Valor faturado da missão: ${fmtMoney(computeTotal(m))}` : '';
+  updateRepasseMargemPreview();
+}
+
+function updateRepasseMargemPreview(){
+  const sel = document.getElementById('rf_missaoId');
+  const valorRepasse = parseFloat(document.getElementById('rf_valorRepasse').value) || 0;
+  const m = missions.find(x=>x.id===sel.value);
+  const preview = document.getElementById('rf_margemPreview');
+  preview.textContent = m ? fmtMoney(computeTotal(m) - valorRepasse) : '—';
+}
+document.getElementById('rf_missaoId').addEventListener('change', updateRepasseMissaoInfo);
+document.getElementById('rf_valorRepasse').addEventListener('input', updateRepasseMargemPreview);
+
+function openRepasseModal(id){
+  editingRepasseId = id || null;
+  populateMissaoSelect();
+  const overlay = document.getElementById('overlayFornecedor');
+  if(id){
+    const r = fornecedores.find(x=>x.id===id);
+    document.getElementById('modalFornecedorTitle').textContent = r.id;
+    document.getElementById('rf_missaoId').value = r.missaoId || '';
+    document.getElementById('rf_fornecedor').value = r.fornecedor || 'Connexion Brazil';
+    document.getElementById('rf_motorista').value = r.motorista || '';
+    document.getElementById('rf_valorRepasse').value = r.valorRepasse || 0;
+    document.getElementById('rf_status').value = r.status || 'Pendente';
+    document.getElementById('rf_dataPagamento').value = r.dataPagamento || '';
+    document.getElementById('rf_observacoes').value = r.observacoes || '';
+    document.getElementById('btnDeleteRepasse').style.display = 'inline-block';
+  } else {
+    document.getElementById('modalFornecedorTitle').textContent = 'Novo repasse';
+    document.getElementById('rf_missaoId').value = '';
+    document.getElementById('rf_fornecedor').value = 'Connexion Brazil';
+    document.getElementById('rf_motorista').value = '';
+    document.getElementById('rf_valorRepasse').value = 0;
+    document.getElementById('rf_status').value = 'Pendente';
+    document.getElementById('rf_dataPagamento').value = '';
+    document.getElementById('rf_observacoes').value = '';
+    document.getElementById('btnDeleteRepasse').style.display = 'none';
+  }
+  updateRepasseMissaoInfo();
+  updateRepasseMargemPreview();
+  overlay.classList.add('open');
+}
+
+function closeRepasseModal(){
+  document.getElementById('overlayFornecedor').classList.remove('open');
+  editingRepasseId = null;
+}
+
+document.getElementById('btnNovoRepasse').addEventListener('click', ()=> openRepasseModal(null));
+document.getElementById('btnCancelarRepasse').addEventListener('click', closeRepasseModal);
+
+document.getElementById('btnSalvarRepasse').addEventListener('click', async ()=>{
+  const r = {
+    missaoId: document.getElementById('rf_missaoId').value,
+    fornecedor: document.getElementById('rf_fornecedor').value.trim(),
+    motorista: document.getElementById('rf_motorista').value.trim(),
+    valorRepasse: parseFloat(document.getElementById('rf_valorRepasse').value) || 0,
+    status: document.getElementById('rf_status').value,
+    dataPagamento: document.getElementById('rf_dataPagamento').value,
+    observacoes: document.getElementById('rf_observacoes').value.trim()
+  };
+  if(!r.motorista && !r.fornecedor){ toast('Informe ao menos o fornecedor ou o motorista.', true); return; }
+
+  const btn = document.getElementById('btnSalvarRepasse');
+  btn.disabled = true;
+  let error;
+  if(editingRepasseId){
+    ({ error } = await sb.from('fornecedores_norsk_hydro').update(toRepasseDbRow(r)).eq('id', editingRepasseId));
+  } else {
+    const id = nextRepasseId();
+    ({ error } = await sb.from('fornecedores_norsk_hydro').insert({ id, ...toRepasseDbRow(r) }));
+  }
+  btn.disabled = false;
+  if(error){ toast('Erro ao salvar repasse: ' + error.message, true); return; }
+
+  closeRepasseModal();
+  await loadFornecedores();
+  toast('Repasse salvo.');
+});
+
+document.getElementById('btnDeleteRepasse').addEventListener('click', async ()=>{
+  if(!editingRepasseId) return;
+  if(!confirm('Excluir este repasse?')) return;
+  const { error } = await sb.from('fornecedores_norsk_hydro').delete().eq('id', editingRepasseId);
+  if(error){ toast('Erro ao excluir: ' + error.message, true); return; }
+  closeRepasseModal();
+  await loadFornecedores();
+  toast('Repasse excluído.');
+});
+
+buildFornecedorTabs();
 
 (function initVoucherDate(){
   const meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
